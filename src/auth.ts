@@ -1,65 +1,72 @@
-import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { compare } from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+import NextAuth from 'next-auth';
+import type { AuthResult } from '@/types/auth';
+import { authConfig } from '@/lib/next-auth-config';
+import type { Session, User } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 
-export const { auth, handlers, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
-
-        if (!user || !user.password) {
-          return null;
-        }
-
-        const isPasswordValid = await compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
-      },
-    }),
-  ],
+// Initialize NextAuth with the configuration
+// @ts-ignore - NextAuth v5 beta types issue
+const nextAuthHandler = NextAuth({
+  ...authConfig,
   callbacks: {
-    async session({ session, token }) {
-      if (token.sub && session.user) {
-        session.user.id = token.sub;
+    ...authConfig.callbacks,
+    async session({ session, token }: { session: Session; token: JWT }): Promise<Session> {
+      if (session.user) {
+        // @ts-ignore - We know these properties exist
+        session.user.id = token.sub || token.id;
+        // @ts-ignore - We know role exists
+        session.user.role = token.role;
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: JWT; user?: User }): Promise<JWT> {
       if (user) {
+        // @ts-ignore - We know id exists
         token.id = user.id;
+        // @ts-ignore - We know role exists
+        token.role = user.role;
       }
       return token;
     },
   },
-  pages: {
-    signIn: '/login',
-  },
-  session: {
-    strategy: "jwt",
-  },
-}); 
+});
+
+// Export the auth functions and handlers
+export const {
+  handlers,
+  auth,
+  signIn,
+  signOut,
+} = nextAuthHandler;
+
+// Create auth handler for getting the current session
+export const getAuthSession = async (): Promise<AuthResult> => {
+  try {
+    const session = await auth();
+    
+    if (!session?.user) {
+      return { user: null, session: null };
+    }
+    
+    return {
+      user: {
+        id: session.user.id || '',
+        name: session.user.name || null,
+        email: session.user.email || null,
+        image: session.user.image || null,
+        // @ts-ignore - We know role exists
+        role: session.user.role || 'user',
+      },
+      session,
+    };
+  } catch (error) {
+    console.error('Auth error:', error);
+    return { user: null, session: null };
+  }
+};
+
+// Export the auth options for reference
+export { authConfig as authOptions };
+
+// Export types for use in your application
+export type { Session } from 'next-auth';

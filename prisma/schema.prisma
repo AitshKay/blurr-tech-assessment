@@ -19,8 +19,14 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
+  employees     Employee[]
+  projects      Project[]
+  chatSessions  ChatSession[] @relation("UserChatSessions")
+  taskComments  TaskComment[]
+  attachments   TaskAttachment[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  role          Role      @default(USER)
 }
 
 model Account {
@@ -56,4 +62,179 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Department {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  employees   Employee[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Employee {
+  id           String      @id @default(cuid())
+  employeeId   String      @unique
+  name         String
+  email        String?     @unique
+  position     String?
+  joiningDate  DateTime
+  basicSalary  Float
+  department   Department? @relation(fields: [departmentId], references: [id])
+  departmentId String?
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+  projects     Project[]   @relation("ProjectEmployees")
+  salaries     Salary[]
+  chatSessions ChatSession[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model ProjectEmployees {
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String
+  project    Project  @relation(fields: [projectId], references: [id])
+  projectId  String
+  role       String?
+  
+  @@id([employeeId, projectId])
+}
+
+model Salary {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month         DateTime
+  basicSalary   Float
+  bonus         Float     @default(0)
+  deductions    Float     @default(0)
+  payableAmount Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      Status   @default(TODO)
+  startDate   DateTime?
+  endDate     DateTime?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+  employees   Employee[] @relation("ProjectEmployees")
+  chatSessions ChatSession[] @relation("ProjectChatSessions")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Task {
+  id              String            @id @default(cuid())
+  title           String
+  description     String?
+  priority        Priority          @default(NORMAL)
+  status          Status            @default(TODO)
+  dueDate         DateTime?
+  reminderDate    DateTime?
+  reminderSent    Boolean           @default(false)
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId       String
+  assignedTo      Employee?         @relation(fields: [assignedToId], references: [id])
+  assignedToId    String?
+  chatSessions    ChatSession[]
+  dependencies    TaskDependency[]  @relation("TaskDependencies")
+  dependents      TaskDependency[]  @relation("TaskDependents")
+  comments        TaskComment[]
+  attachments     TaskAttachment[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model TaskDependency {
+  id            String   @id @default(cuid())
+  taskId        String
+  dependentId   String
+  type          String   // "BLOCKER" | "PREDECESSOR"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  task          Task     @relation("TaskDependencies", fields: [taskId], references: [id], onDelete: Cascade)
+  dependent     Task     @relation("TaskDependents", fields: [dependentId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependentId])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  content   String
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TaskAttachment {
+  id        String   @id @default(cuid())
+  fileName  String
+  fileUrl   String
+  fileType  String
+  fileSize  Int
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String?
+  taskId    String?
+  employeeId String?
+  context   String
+  user      User     @relation("UserChatSessions", fields: [userId], references: [id], onDelete: Cascade)
+  project   Project? @relation("ProjectChatSessions", fields: [projectId], references: [id])
+  task      Task?    @relation(fields: [taskId], references: [id])
+  employee  Employee? @relation(fields: [employeeId], references: [id])
+  messages  ChatMessage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  role      String   // "user" | "assistant"
+  chatId    String
+  chat      ChatSession @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum Status {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  BLOCKED
+}
+
+enum Role {
+  USER
+  ADMIN
+  MANAGER
 }
