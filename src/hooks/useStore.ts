@@ -1,15 +1,16 @@
-import { useSyncExternalStore, useMemo } from 'react';
+import { useSyncExternalStore } from 'react';
 import { StoreApi } from 'zustand';
 
 export function useStore<T, U>(
   store: StoreApi<T>,
-  selector: (state: T) => U
+  selector: (state: T) => U,
+  getServerSnapshot?: () => U
 ): U {
-  const state = store.getState();
+  const getSnapshot = () => selector(store.getState());
   
   return useSyncExternalStore(
     store.subscribe,
-    () => selector(store.getState()),
-    () => selector(state) // Use initial state for SSR
+    getSnapshot,
+    getServerSnapshot || getSnapshot
   );
 }
