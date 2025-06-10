@@ -24,6 +24,7 @@ model User {
   chatSessions  ChatSession[] @relation("UserChatSessions")
   taskComments  TaskComment[]
   attachments   TaskAttachment[]
+  aiConfigs     AIProviderConfig[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   role          Role      @default(USER)
@@ -271,23 +272,4 @@ model AIProviderConfig {
   @@unique([providerId, userId, modelName])
 }
 
-// Add AI provider to User model
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  password      String?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  employees     Employee[]
-  projects      Project[]
-  chatSessions  ChatSession[] @relation("UserChatSessions")
-  taskComments  TaskComment[]
-  attachments   TaskAttachment[]
-  aiConfigs     AIProviderConfig[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  role          Role      @default(USER)
-}
+// AI provider relation added to User model

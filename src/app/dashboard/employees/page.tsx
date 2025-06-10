@@ -8,8 +8,8 @@ import { getAllEmployees } from "@/app/actions/employees";
 import { DeleteEmployeeButton } from "@/components/employees/delete-employee-button";
 import { Employee } from "@prisma/client";
 
-interface EmployeeWithEmail extends Employee {
-  email?: string;
+type EmployeeWithEmail = Omit<Employee, 'email'> & {
+  email: string | null;
 }
 
 export default async function EmployeesPage() {

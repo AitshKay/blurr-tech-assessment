@@ -1,5 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import { hash } from 'bcryptjs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Get the current file's directory for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const prisma = new PrismaClient();
 
@@ -108,7 +114,81 @@ async function main() {
     });
   }
 
-  console.log('Database has been seeded with sample data!');
+  // Create default AI providers
+  const defaultProviders = [
+    {
+      name: 'openai',
+      displayName: 'OpenAI',
+      apiKeyName: 'OPENAI_API_KEY',
+      baseUrl: 'https://api.openai.com/v1',
+      isDefault: true,
+    },
+    {
+      name: 'google',
+      displayName: 'Google Gemini',
+      apiKeyName: 'GOOGLE_API_KEY',
+      baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    },
+    {
+      name: 'anthropic',
+      displayName: 'Anthropic Claude',
+      apiKeyName: 'ANTHROPIC_API_KEY',
+      baseUrl: 'https://api.anthropic.com/v1',
+    },
+    {
+      name: 'alibaba',
+      displayName: 'Alibaba Qwen',
+      apiKeyName: 'ALIBABA_API_KEY',
+      baseUrl: 'https://dashscope.aliyuncs.com/api/v1',
+    },
+    {
+      name: 'deepseek',
+      displayName: 'Deepseek',
+      apiKeyName: 'DEEPSEEK_API_KEY',
+      baseUrl: 'https://api.deepseek.com/v1',
+    },
+  ];
+
+  for (const provider of defaultProviders) {
+    await prisma.aIProvider.upsert({
+      where: { name: provider.name },
+      update: {},
+      create: {
+        name: provider.name,
+        displayName: provider.displayName,
+        apiKeyName: provider.apiKeyName,
+        baseUrl: provider.baseUrl,
+        isDefault: provider.isDefault || false,
+      },
+    });
+  }
+
+  // Create default config for admin user with OpenAI
+  const openaiProvider = await prisma.aIProvider.findUnique({
+    where: { name: 'openai' },
+  });
+
+  if (openaiProvider) {
+    await prisma.aIProviderConfig.upsert({
+      where: {
+        providerId_userId_modelName: {
+          providerId: openaiProvider.id,
+          userId: user.id,
+          modelName: 'gpt-4o',
+        },
+      },
+      update: {},
+      create: {
+        providerId: openaiProvider.id,
+        userId: user.id,
+        apiKey: process.env.OPENAI_API_KEY || 'your-openai-api-key',
+        modelName: 'gpt-4o',
+        isDefault: true,
+      },
+    });
+  }
+
+  console.log('Database has been seeded with sample data and AI providers!');
 }
 
 main()

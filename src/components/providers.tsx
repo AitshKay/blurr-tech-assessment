@@ -5,7 +5,6 @@ import { PropsWithChildren, useState, useEffect } from "react";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { AIChatProvider } from "@/contexts/ai-chat-context";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 
 export function Providers({ children }: PropsWithChildren) {
@@ -32,9 +31,7 @@ export function Providers({ children }: PropsWithChildren) {
     return (
       <SessionProvider>
         <QueryClientProvider client={queryClient}>
-          <AIChatProvider>
-            {children}
-          </AIChatProvider>
+          {children}
         </QueryClientProvider>
       </SessionProvider>
     );
@@ -44,13 +41,11 @@ export function Providers({ children }: PropsWithChildren) {
     <ThemeProvider defaultTheme="system" storageKey="app-theme">
       <SessionProvider>
         <QueryClientProvider client={queryClient}>
-          <AIChatProvider>
-            {children}
-            <SonnerToaster position="top-center" richColors />
-            {process.env.NODE_ENV === "development" && (
-              <ReactQueryDevtools initialIsOpen={false} position="bottom" />
-            )}
-          </AIChatProvider>
+          {children}
+          <SonnerToaster position="top-center" richColors />
+          {process.env.NODE_ENV === "development" && (
+            <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+          )}
         </QueryClientProvider>
       </SessionProvider>
     </ThemeProvider>

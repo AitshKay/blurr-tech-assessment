@@ -182,7 +182,7 @@ export function SalaryForm({ initialData, employees, onSubmit, onSuccess }: Sala
                       initialFocus
                       defaultMonth={field.value || new Date()}
                       toMonth={new Date()}
-                      captionLayout="dropdown-buttons"
+                      captionLayout="dropdown"
                       fromYear={new Date().getFullYear() - 10}
                       toYear={new Date().getFullYear()}
                     />
