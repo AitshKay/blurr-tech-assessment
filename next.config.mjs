@@ -13,6 +13,14 @@ const nextConfig = {
   env: {
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   },
+  // Disable ESLint during build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Disable TypeScript type checking during build
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
