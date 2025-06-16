@@ -40,10 +40,6 @@ const eslintConfig = [
   {
     // Enable TypeScript rules for TypeScript files
     files: ["**/*.ts", "**/*.tsx"],
-    excludedFiles: [
-      "**/prisma/generated/**/*.ts",
-      "**/node_modules/**/*.ts"
-    ],
     rules: {
       "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
       "@typescript-eslint/no-explicit-any": "warn"
